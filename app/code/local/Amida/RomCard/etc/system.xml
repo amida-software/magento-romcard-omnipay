@@ -139,6 +139,14 @@
                             <show_in_store>0</show_in_store>
                             <sort_order>150</sort_order>
                         </is_dev>
+                        <sort_order>
+                            <label>Sort Order</label>
+                            <frontend_type>text</frontend_type>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <sort_order>160</sort_order>
+                        </sort_order>
                     </fields>
                 </romcard>
             </groups>
