@@ -27,23 +27,32 @@
                             <show_in_store>0</show_in_store>
                             <sort_order>20</sort_order>
                         </active>
-                        <order_status_success translate="label">
-                            <label>Order payment is success status</label>
+                        <order_status_new translate="label">
+                            <label>New order status</label>
                             <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_order_status</source_model>
+                            <source_model>romcard/system_config_source_order_status</source_model>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
                             <sort_order>30</sort_order>
-                        </order_status_success>
-                        <order_status_failed translate="label">
-                            <label>Order payment is failed status</label>
+                        </order_status_new>
+                        <order_status_success translate="label">
+                            <label>Order payment is success status</label>
                             <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_order_status</source_model>
+                            <source_model>romcard/system_config_source_order_status</source_model>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
                             <sort_order>40</sort_order>
+                        </order_status_success>
+                        <order_status_failed translate="label">
+                            <label>Order payment is failed status</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>romcard/system_config_source_order_status</source_model>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                            <sort_order>50</sort_order>
                         </order_status_failed>
                         <allowspecific translate="label">
                             <label>Payment from applicable countries</label>
@@ -52,7 +61,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <sort_order>50</sort_order>
+                            <sort_order>60</sort_order>
                         </allowspecific>
                         <specificcountry translate="label">
                             <label>Payment from Specific countries</label>
@@ -61,7 +70,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <sort_order>60</sort_order>
+                            <sort_order>70</sort_order>
                         </specificcountry>
                         <merchant_id translate="label">
                             <label>Merchant ID</label>
@@ -69,7 +78,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
-                            <sort_order>70</sort_order>
+                            <sort_order>80</sort_order>
                         </merchant_id>
                         <terminal_id translate="label">
                             <label>Terminal ID</label>
@@ -77,7 +86,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
-                            <sort_order>80</sort_order>
+                            <sort_order>90</sort_order>
                         </terminal_id>
                         <merchant_name translate="label">
                             <label>Merchant name</label>
@@ -85,7 +94,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
-                            <sort_order>90</sort_order>
+                            <sort_order>100</sort_order>
                         </merchant_name>
                         <merchant_url translate="label">
                             <label>Merchant url</label>
@@ -93,7 +102,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
-                            <sort_order>100</sort_order>
+                            <sort_order>110</sort_order>
                         </merchant_url>
                         <salt_key translate="label">
                             <label>Salt key</label>
@@ -101,7 +110,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
-                            <sort_order>110</sort_order>
+                            <sort_order>120</sort_order>
                         </salt_key>
                         <description translate="label">
                             <label>Order description</label>
@@ -109,7 +118,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <sort_order>120</sort_order>
+                            <sort_order>130</sort_order>
                             <comment><![CDATA[{{var products}}]]></comment>
                         </description>
                         <log_enabled>
@@ -119,7 +128,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
-                            <sort_order>130</sort_order>
+                            <sort_order>140</sort_order>
                         </log_enabled>
                         <is_dev>
                             <label>Is dev mode</label>
@@ -128,7 +137,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
-                            <sort_order>170</sort_order>
+                            <sort_order>150</sort_order>
                         </is_dev>
                     </fields>
                 </romcard>

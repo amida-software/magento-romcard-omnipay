@@ -10,8 +10,15 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
         return Mage::helper('romcard');
     }
 
+    /**
+     * @param Mage_Sales_Model_Order $order
+     * @param bool $logResponse
+     * @return \ByTIC\Omnipay\Romcard\Message\PurchaseResponse|\Omnipay\Common\Message\ResponseInterface
+     * @throws Exception
+     */
     public function purchase($order, $logResponse = true)
     {
+        $order->setState(Mage_Sales_Model_Order::STATE_NEW, $this->_data()->getNewStatus())->save();
         /**
          * @var Amida_RomCard_Model_Getaway $getaway
          */

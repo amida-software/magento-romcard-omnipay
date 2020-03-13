@@ -66,6 +66,7 @@
                 <payment_action>sale</payment_action>
                 <description><![CDATA[Оплата товара(ов): {{var products}}]]></description>
                 <log_enabled>1</log_enabled>
+                <order_status_new><![CDATA[pending_payment]]></order_status_new>
                 <order_status_success><![CDATA[paid]]></order_status_success>
                 <order_status_failed><![CDATA[payment_failed]]></order_status_failed>
                 <is_dev>0</is_dev>

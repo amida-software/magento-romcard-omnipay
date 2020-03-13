@@ -64,6 +64,11 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
         return trim(Mage::getStoreConfig('trans_email/ident_general/email'));
     }
 
+    public function getNewStatus()
+    {
+        return $this->getConfig('order_status_new');
+    }
+
     public function getSuccessStatus()
     {
         return $this->getConfig('order_status_success');
