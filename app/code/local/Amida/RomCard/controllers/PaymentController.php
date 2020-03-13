@@ -6,6 +6,7 @@ class Amida_RomCard_PaymentController extends Mage_Core_Controller_Front_Action
      * @var Mage_Sales_Model_Order
      */
     protected $_order = null;
+    protected $_orderGetStrategy = [];
 
     /**
      * @return Amida_RomCard_Helper_Getaway
@@ -31,16 +32,7 @@ class Amida_RomCard_PaymentController extends Mage_Core_Controller_Front_Action
     protected function _getOrder()
     {
         if ($this->_order === null) {
-            $this->_order = Mage::getModel('sales/order');
-
-            if ($id = $this->getRequest()->getParam('ORDER', null)) {
-                $this->_order->loadByIncrementId($id);
-            } elseif ($code = $this->getRequest()->getParam('order', null)) {
-                $this->_order->load($code, 'protect_code');
-            } else {
-                $this->_order->loadByIncrementId($this->_getSession()->getLastRealOrderId());
-            }
-
+            $this->_initOrder();
             if (! $this->_order->getId()) {
                 throw Mage::exception('Amida_RomCard', $this->__('Invalid order'));
             }
@@ -49,6 +41,34 @@ class Amida_RomCard_PaymentController extends Mage_Core_Controller_Front_Action
         }
 
         return $this->_order;
+    }
+
+    protected function _initOrder()
+    {
+        $this->_order = Mage::getModel('sales/order');
+
+        foreach ($this->_orderGetStrategy as $strategy) {
+            if ($this->_order->getId()) {
+                continue;
+            }
+
+            $loadData = call_user_func($strategy);
+
+            if ($loadData) {
+                list($value, $attribute) = $loadData;
+                $this->_order->loadByAttribute($attribute, $value);
+            }
+        }
+
+        return $this->_order;
+    }
+
+    protected function _initQuoteSession()
+    {
+        $this->_getSession()
+            ->setLastSuccessQuoteId($this->_getOrder()->getQuoteId())
+            ->setLastQuoteId($this->_getOrder()->getQuoteId())
+            ->setLastOrderId($this->_getOrder()->getId());
     }
 
     /**
@@ -76,6 +96,29 @@ class Amida_RomCard_PaymentController extends Mage_Core_Controller_Front_Action
         }
     }
 
+    public function __construct(Zend_Controller_Request_Abstract $request, Zend_Controller_Response_Abstract $response, array $invokeArgs = array())
+    {
+        parent::__construct($request, $response, $invokeArgs);
+
+        $this->_orderGetStrategy['protect_code'] = function() {
+            if ($code = $this->getRequest()->getParam('order', null)) {
+                return [$code, 'protect_code'];
+            }
+
+            return null;
+        };
+        $this->_orderGetStrategy['order_id'] = function() {
+            if ($id = $this->getRequest()->getParam('ORDER', null)) {
+                return [$id, $this->_order->getResource()->getIdFieldName()];
+            }
+
+            return null;
+        };
+        $this->_orderGetStrategy['session'] = function() {
+            return [$this->_order->loadByIncrementId($this->_getSession()->getLastRealOrderId()), 'increment_id'];
+        };
+    }
+
     public function redirectAction()
     {
         if (! $this->getRequest()->isGet() || $this->getRequest()->isAjax()) {
@@ -83,6 +126,7 @@ class Amida_RomCard_PaymentController extends Mage_Core_Controller_Front_Action
         }
 
         return $this->processRequest(function() {
+            $this->_initQuoteSession();
             $response = $this->_helper()->purchase($this->_getOrder(), false);
 
             if ($response->isRedirect()) {
@@ -95,12 +139,10 @@ class Amida_RomCard_PaymentController extends Mage_Core_Controller_Front_Action
 
     public function returnAction()
     {
+        unset($this->_orderGetStrategy['protect_code']);
         $this->processRequest(function() {
             $this->_helper()->finishPurchase($this->_getOrder(), $this->getRequest()->getParams());
-            $this->_getSession()
-                ->setLastSuccessQuoteId($this->_getOrder()->getQuoteId())
-                ->setLastQuoteId($this->_getOrder()->getQuoteId())
-                ->setLastOrderId($this->_getOrder()->getId());
+            $this->_initQuoteSession();
 
             if (! $this->_helper()->isPaid($this->getRequest()->getParam('MESSAGE', null))) {
                 throw Mage::exception('Amida_RomCard', $this->__('The order payment is failed'));
@@ -112,6 +154,7 @@ class Amida_RomCard_PaymentController extends Mage_Core_Controller_Front_Action
     {
         $this->processRequest(function() {
             $this->_helper()->finishPurchase($this->_getOrder(), $this->getRequest()->getParams());
+            $this->_initQuoteSession();
             throw Mage::exception('Amida_RomCard', $this->__('The order payment is failed'));
         }, 'The order payment is failed','The order payment is failed');
     }

@@ -108,7 +108,7 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
     public function generatePurchase($order)
     {
         $purchase = $this->getMerchantAuthData();
-        $purchase['order_id'] = $order->getRealOrderId();
+        $purchase['order_id'] = $order->getId();
         $purchase['amount'] = $order->getGrandTotal();
         $purchase['currency'] = Mage::app()->getStore()->getCurrentCurrency()->getCurrencyCode();
         $purchase['description'] = $this->getDescription($order);

@@ -1,5 +1,5 @@
 "Payment transaction is created", "Создана транзакция на оплату"
-"Error while payment transaction creation", "Во время создания транзакции на оплату, произошла ошибка"
+"Error while payment transaction creation", "Во время оплаты произошла ошибка"
 "The order payment is failed", "Произошла ошибка во время оплаты"
 "The order is paid successfully", "Заказ успешно оплачен"
 "Order paid with: %s", "Заказ оплачен: %s"
