@@ -52,9 +52,7 @@ class Amida_RomCard_PaymentController extends Mage_Core_Controller_Front_Action
                 continue;
             }
 
-            $loadData = call_user_func($strategy);
-
-            if ($loadData) {
+            if ($loadData = call_user_func($strategy)) {
                 list($value, $attribute) = $loadData;
                 $this->_order->loadByAttribute($attribute, $value);
             }
@@ -115,16 +113,12 @@ class Amida_RomCard_PaymentController extends Mage_Core_Controller_Front_Action
             return null;
         };
         $this->_orderGetStrategy['session'] = function() {
-            return [$this->_order->loadByIncrementId($this->_getSession()->getLastRealOrderId()), 'increment_id'];
+            return [$this->_getSession()->getLastRealOrderId(), 'increment_id'];
         };
     }
 
     public function redirectAction()
     {
-        if (! $this->getRequest()->isGet() || $this->getRequest()->isAjax()) {
-            return $this->norouteAction();
-        }
-
         return $this->processRequest(function() {
             $this->_initQuoteSession();
             $response = $this->_helper()->purchase($this->_getOrder(), false);
