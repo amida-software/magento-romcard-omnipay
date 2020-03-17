@@ -48,7 +48,7 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
         $this->_data()->logResponse($responseData);
         if ($this->isPaid($responseData['MESSAGE'] ?? null)) {
             $comment = $this->__('Order paid with: %s', $responseData['AMOUNT'] ?? $this->__('Cannot get payment amount'));
-            $status = $this->_data()->getFailedStatus();
+            $status = $this->_data()->getSuccessStatus();
         } else {
             $comment = $this->__('Order payment failed with: %s', $responseData['AMOUNT'] ?? $this->__('Cannot get payment amount'));
             $status = $this->_data()->getFailedStatus();
