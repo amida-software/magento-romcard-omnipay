@@ -157,11 +157,16 @@ data: $data");
     }
 
     /**
-     * @var ByTIC\Omnipay\Romcard\Message\AbstractResponse|\Exception $response
+     * @var array|ByTIC\Omnipay\Romcard\Message\AbstractResponse|\Exception $response
      */
     public function logResponse($response)
     {
-        $data = $response instanceof Exception ? $response->getMessage() : $response->getData();
+        if (is_array($response)) {
+            $data = $response;
+        } else {
+            $data = $response instanceof Exception ? $response->getMessage() : $response->getData();
+        }
+
         $data = ! is_string($data) ? json_encode($data) : $data;
         $this->log("RESPONSE. {$data}");
     }
