@@ -11,54 +11,114 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
     }
 
     /**
-     * @param Mage_Sales_Model_Order $order
-     * @param bool $logResponse
-     * @return \ByTIC\Omnipay\Romcard\Message\PurchaseResponse|\Omnipay\Common\Message\ResponseInterface
-     * @throws Exception
+     * @return Amida_RomCard_Helper_Transaction
      */
-    public function purchase($order, $logResponse = true)
+    protected function _transaction()
     {
-        $order->setState(Mage_Sales_Model_Order::STATE_NEW, $this->_data()->getNewStatus())->save();
-        /**
-         * @var Amida_RomCard_Model_Getaway $getaway
-         */
-        $getaway = Mage::getModel('romcard/getaway');
-        $purchase = $getaway->purchase($this->_data()->generatePurchase($order));
-        $this->_data()->logRequest($purchase);
+        return Mage::helper('romcard/transaction');
+    }
 
-        try {
-            $result = $purchase->send();
-            $this->_data()->logResponse($result);
-            return $result;
-        } catch (Exception $exception) {
-            if ($logResponse) {
-                $this->_data()->logResponse($exception);
-            }
+    /**
+     * @return Amida_RomCard_Helper_Order
+     */
+    protected function _order()
+    {
+        return Mage::helper('romcard/order');
+    }
 
-            throw $exception;
+    /**
+     * @return Amida_RomCard_Helper_Logger
+     */
+    protected function _logger()
+    {
+        return Mage::helper('romcard/logger');
+    }
+
+    /**
+     * @return Amida_RomCard_Model_Getaway
+     */
+    protected function _getaway()
+    {
+        return Mage::getModel('romcard/getaway');
+    }
+
+    /**
+     * @param Mage_Sales_Model_Order $order
+     * @return \ByTIC\Omnipay\Romcard\Message\PurchaseResponse|\Omnipay\Common\Message\ResponseInterface
+     * @throws Exception|Amida_RomCard_Exception
+     */
+    public function authorize($order)
+    {
+        $order->setState(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT, $this->_data()->getNewStatus())->save();
+        $request = $this->_getaway()->purchase($this->_data()->generatePurchase($order));
+        $response = $this->_logger()->decorateRequest($request, 'PreAuthorize');
+
+        if (! $response->isRedirect()) {
+            throw Mage::exception('Amida_RomCard', $response->getMessage());
+        }
+
+        return $response;
+    }
+
+    /**
+     * @param Mage_Sales_Model_Order $order
+     * @param array $responseData
+     * @param null|string $transactionType
+     *
+     * @throws Exception|Amida_RomCard_Exception
+     */
+    public function finishAuthorize($order, $responseData, $transactionType = null)
+    {
+        $this->_logger()->logResponse('Authorization', $responseData);
+
+        $this->_order()->complete($order, $responseData);
+
+        if (isset($responseData['INT_REF']) && $transactionType !== null) {
+            $this->_transaction()->addTransaction($order, $responseData['INT_REF'], $transactionType);
         }
     }
 
     /**
      * @param Mage_Sales_Model_Order $order
      * @param array $responseData
+     *
+     * @throws Exception|Amida_RomCard_Exception
+     *
+     * @return Omnipay\Common\Message\ResponseInterface
      */
-    public function finishPurchase($order, $responseData)
+    public function completeSales($order, $responseData)
     {
-        $this->_data()->logResponse($responseData);
-        if ($this->isPaid($responseData['MESSAGE'] ?? null)) {
-            $comment = $this->__('Order paid with: %s', $responseData['AMOUNT'] ?? $this->__('Cannot get payment amount'));
-            $status = $this->_data()->getSuccessStatus();
-        } else {
-            $comment = $this->__('Order payment failed with: %s', $responseData['AMOUNT'] ?? $this->__('Cannot get payment amount'));
-            $status = $this->_data()->getFailedStatus();
+        if (! $this->_order()->isPaid($responseData['MESSAGE'] ?? null)) {
+            return $this->reversal($order, $responseData);
         }
 
-        $order->setState(Mage_Sales_Model_Order::STATE_PAYMENT_REVIEW, $status, $comment)->save();
+        $this->finishAuthorize($order, $responseData, Mage_Sales_Model_Order_Payment_Transaction::TYPE_AUTH);
+
+        $getaway = $this->_getaway();
+        $requestData = $this->_data()->generateSuccessPurchase($order);
+        $requestData['endpointUrl'] = $getaway->getEndpointUrl();
+        $request = $getaway->completePurchase($requestData);
+
+        $response = $this->_logger()->decorateRequest($request, 'CompleteSales');
+        $responseData = $response->getData();
+
+        if (isset($responseData['INT_REF'])) {
+            $this->_transaction()->addPaymentTransaction($order, $responseData['INT_REF']);
+        }
+
+        return $response;
     }
 
-    public function isPaid($status)
+    /**
+     * @param Mage_Sales_Model_Order $order
+     * @param array $responseData
+     *
+     * @throws Exception|Amida_RomCard_Exception
+     */
+    public function reversal($order, $responseData)
     {
-        return $status == 'Approved';
+        $this->finishAuthorize($order, $responseData, Mage_Sales_Model_Order_Payment_Transaction::TYPE_REFUND);
+
+        throw Mage::exception('Amida_RomCard', $this->__('The order payment is failed'));
     }
 }

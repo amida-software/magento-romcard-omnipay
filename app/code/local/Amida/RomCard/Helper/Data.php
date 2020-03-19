@@ -5,6 +5,10 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
     const PAYMENT_STATUS_PAID = 'paid';
     const PAYMENT_STATUS_FAIL = 'payment_failed';
 
+    const PAYMENT_TRANSACTION_AUTHORIZE = 0;
+    const PAYMENT_TRANSACTION_COMPLETE_SALES = 21;
+    const PAYMENT_TRANSACTION_REVERSAL = 24;
+
     protected $paymentMethodModel = null;
 
     public function isDevelop()
@@ -108,15 +112,35 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
 
     /**
      * @param Mage_Sales_Model_Order $order
+     * @param array $unsetFields
      * @return mixed
      */
-    public function generatePurchase($order)
+    public function generatePurchase($order, $unsetFields = [])
     {
         $purchase = $this->getMerchantAuthData();
         $purchase['order_id'] = $order->getId();
         $purchase['amount'] = $order->getGrandTotal();
         $purchase['currency'] = Mage::app()->getStore()->getCurrentCurrency()->getCurrencyCode();
         $purchase['description'] = $this->getDescription($order);
+
+        foreach ($unsetFields as $fieldName) {
+            unset($purchase[$fieldName]);
+        }
+
+        return $purchase;
+    }
+
+    /**
+     * @param Mage_Sales_Model_Order $order
+     * @return mixed
+     */
+    public function generateSuccessPurchase($order)
+    {
+        $purchase = $this->generatePurchase($order);
+        $purchase['TRTYPE'] = self::PAYMENT_TRANSACTION_COMPLETE_SALES;
+        $purchase['RRN'] = $order->getPayment()->getAuthorizationTransaction()
+            ? $order->getPayment()->getAuthorizationTransaction()->getTxnId()
+            : null;
 
         return $purchase;
     }
@@ -133,50 +157,5 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
         $auth['key'] = $this->getSaltKey();
 
         return $auth;
-    }
-
-    public function getLogFile()
-    {
-        return 'romcard.log';
-    }
-
-    public function logEnabled()
-    {
-        return $this->getConfig('log_enabled');
-    }
-
-    /**
-     * @var ByTIC\Omnipay\Romcard\Message\AbstractRequest $request
-     */
-    public function logRequest($request)
-    {
-        $data = $request->getData();
-        $data = ! is_string($data) ? json_encode($data) : $data;
-        $this->log("REQUEST. url: {$request->getEndpointUrl()},
-data: $data");
-    }
-
-    /**
-     * @var array|ByTIC\Omnipay\Romcard\Message\AbstractResponse|\Exception $response
-     */
-    public function logResponse($response)
-    {
-        if (is_array($response)) {
-            $data = $response;
-        } else {
-            $data = $response instanceof Exception ? $response->getMessage() : $response->getData();
-        }
-
-        $data = ! is_string($data) ? json_encode($data) : $data;
-        $this->log("RESPONSE. {$data}");
-    }
-
-    public function log($message)
-    {
-        if (! $this->logEnabled()) {
-            return;
-        }
-
-        Mage::log($message, null, $this->getLogFile());
     }
 }
