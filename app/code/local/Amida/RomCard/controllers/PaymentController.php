@@ -32,10 +32,6 @@ class Amida_RomCard_PaymentController extends Mage_Core_Controller_Front_Action
             call_user_func($callback);
             $this->_getSession()->addSuccess($this->__($successMessage));
             $this->_redirectSuccess(Mage::getUrl('checkout/onepage/success'));
-        } catch (Omnipay\Common\Exception\OmnipayException $exception) {
-            $this->_getSession()->addSuccess($this->__($successMessage));
-            $this->_redirectSuccess(Mage::getUrl('checkout/onepage/success'));
-            Mage::logException($exception);
         } catch (Mage_Core_Exception $exception) {
             $this->_getSession()->addError($exception->getMessage());
             $this->_redirectError(Mage::getUrl('checkout/onepage/success'));
