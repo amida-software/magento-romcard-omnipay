@@ -69,7 +69,12 @@ data: $data");
 
         try {
             $response = $request->send();
-            $this->logResponse($requestType, $response->getData());
+
+            if (is_object($response)) {
+                $this->logResponse($requestType, $response->getData());
+            } else {
+                $this->logResponse($requestType, '[check url] ' . $request->getEndpointUrl() . '?' . http_build_query($request->getData()));
+            }
 
             return $response;
         } catch (Exception $exception) {

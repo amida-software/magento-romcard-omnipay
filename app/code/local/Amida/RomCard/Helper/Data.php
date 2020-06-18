@@ -99,15 +99,12 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
                 $products[] = $item->getName();
             }
 
-            $products = array_map(function($product) {
-                return "\"{$product}\"";
-            }, $products);
             $products = implode(', ', $products);
             $filter->setVariables(['products' => $products, 'order' => $order]);
             $template = $filter->filter($template);
         }
 
-        return $template;
+        return preg_replace('/[^a-z0-9\s\.\-\_]/ui', '', $template);
     }
 
     /**
@@ -137,10 +134,21 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
     public function generateSuccessPurchase($order)
     {
         $purchase = $this->generatePurchase($order);
-        $purchase['TRTYPE'] = self::PAYMENT_TRANSACTION_COMPLETE_SALES;
-        $purchase['RRN'] = $order->getPayment()->getAuthorizationTransaction()
-            ? $order->getPayment()->getAuthorizationTransaction()->getTxnId()
-            : null;
+        $purchase['cardReference'] = Mage::app()->getRequest()->getParam('RRN');
+        $purchase['transactionReference'] = Mage::app()->getRequest()->getParam('INT_REF');
+
+        return $purchase;
+    }
+
+    /**
+     * @param Mage_Sales_Model_Order $order
+     * @return mixed
+     */
+    public function generateReversalPurchase($order)
+    {
+        $purchase = $this->generatePurchase($order);
+        $purchase['cardReference'] = Mage::app()->getRequest()->getParam('RRN');
+        $purchase['transactionReference'] = Mage::app()->getRequest()->getParam('INT_REF');
 
         return $purchase;
     }
@@ -151,8 +159,8 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
         $auth['merchant_url'] = $this->getMerchantUrl();
         $auth['merchant'] = $this->getMerchantId();
         $auth['terminal'] = $this->getTerminalId();
-        $auth['returnUrl'] = Mage::getUrl('romcard/payment/return', ['_secure' => true, '_current' => true]);
-        $auth['cancelUrl'] = Mage::getUrl('romcard/payment/cancel', ['_secure' => true, '_current' => true]);
+        $auth['returnUrl'] = Mage::getUrl('romcard/payment/return', ['_secure' => true]);
+        $auth['cancelUrl'] = Mage::getUrl('romcard/payment/cancel', ['_secure' => true]);
         $auth['merchant_email'] = $this->getMerchantEmail();
         $auth['key'] = $this->getSaltKey();
 
