@@ -75,41 +75,39 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
     public function finishAuthorize($order, $responseData, $transactionType = null)
     {
         $this->_logger()->logResponse('RedirectBack', $responseData);
-
-        if ($this->_getaway()->supportsCompletePurchase()) {
-            $this->_logger()->decorateRequest($this->_getaway()->completePurchase($this->_data()->generateSuccessPurchase($order)), 'FinishAuthorization');
-        }
-
-        $this->_order()->complete($order, $responseData);
+        $this->_logger()->decorateRequest($this->_getaway()->completePurchase($this->_data()->generateSuccessPurchase($order)), 'FinishAuthorization');
 
         if (isset($responseData['INT_REF']) && $transactionType !== null) {
             $this->_transaction()->addTransaction($order, $responseData['INT_REF'], $transactionType);
+            $order->getPayment()->setAdditionalData(json_encode($responseData))->save();
         }
     }
 
     /**
      * @param Mage_Sales_Model_Order $order
-     * @param array $responseData
      *
      * @throws Exception|Amida_RomCard_Exception
      *
      * @return Omnipay\Common\Message\ResponseInterface
      */
-    public function completeSales($order, $responseData)
+    public function completeSales($order)
     {
+        $responseData = json_decode($order->getPayment()->getAdditionalData(), true);
+
         if (! $this->_order()->isPaid($responseData['ACTION'] ?? null)) {
-            return $this->reversal($order, $responseData);
+            throw Mage::exception('Amida_RomCard', $this->__('The order payment is failed'));
         }
 
-        $this->finishAuthorize($order, $responseData, Mage_Sales_Model_Order_Payment_Transaction::TYPE_AUTH);
-
         $request = $this->_getaway()->sale($this->_data()->generateSuccessPurchase($order));
+
         if ($response = $this->_logger()->decorateRequest($request, 'CompleteSales')) {
             $responseData = $response->getData();
 
             if (isset($responseData['INT_REF'])) {
                 $this->_transaction()->addPaymentTransaction($order, $responseData['INT_REF']);
             }
+
+            $this->_order()->complete($order, $responseData);
         }
 
         return $response;
@@ -117,16 +115,25 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
 
     /**
      * @param Mage_Sales_Model_Order $order
-     * @param array $responseData
      *
      * @throws Exception|Amida_RomCard_Exception
      */
-    public function reversal($order, $responseData)
+    public function reversal($order)
     {
-        $this->finishAuthorize($order, $responseData, Mage_Sales_Model_Order_Payment_Transaction::TYPE_REFUND);
+        if ($response = $this->_logger()->decorateRequest($this->_getaway()->refund($this->_data()->generateReversalPurchase($order)), 'Reversal')) {
+            $responseData = $response->getData();
+            $transactionId = $responseData['INT_REF'] ?? null;
 
-        if ($this->_getaway()->supportsRefund()) {
-            $this->_logger()->decorateRequest($this->_getaway()->refund($this->_data()->generateReversalPurchase($order)), 'Reversal');
+            if (! $transactionId) {
+                $transactionId = $order->getPayment()->getAuthorizationTransaction()->getTxnId();
+            }
+
+            if ($transactionId) {
+                $this->_transaction()->addRefundTransaction($order, $transactionId);
+            }
+
+            $this->_order()->complete($order, $responseData);
+            return;
         }
 
         throw Mage::exception('Amida_RomCard', $this->__('The order payment is failed'));

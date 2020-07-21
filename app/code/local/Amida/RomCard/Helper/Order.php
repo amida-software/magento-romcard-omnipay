@@ -88,11 +88,10 @@ class Amida_RomCard_Helper_Order extends Mage_Core_Helper_Abstract
      */
     public function complete($order, $responseData)
     {
-        $responseMessage = $responseData['ACTION'] ?? null;
-        $status = $this->getOrderStatusByResponse($responseMessage);
-        $comment = $this->getOrderCommentByResponse($responseMessage, $responseData['AMOUNT'] ?? $this->__('Cannot get payment amount'));
+        $action = $responseData['ACTION'] ?? null;
+        $status = $this->getOrderStatusByResponse($action);
+        $comment = $this->getOrderCommentByResponse($action, $responseData['AMOUNT'] ?? $this->__('Cannot get payment amount'));
         $order->setState(Mage_Sales_Model_Order::STATE_PAYMENT_REVIEW, $status, $comment)->save();
-        $order->getPayment()->setAdditionalData(json_encode($responseData))->save();
     }
 
     public function isPaid($status)

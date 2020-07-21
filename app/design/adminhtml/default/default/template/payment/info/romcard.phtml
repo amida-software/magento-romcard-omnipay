@@ -1,0 +1,110 @@
+<?php
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License (AFL 3.0)
+ * that is bundled with this package in the file LICENSE_AFL.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/afl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magento.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Magento to newer
+ * versions in the future. If you wish to customize Magento for your
+ * needs please refer to http://www.magento.com for more information.
+ *
+ * @category    design
+ * @package     default_default
+ * @copyright   Copyright (c) 2006-2020 Magento, Inc. (http://www.magento.com)
+ * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ */
+?>
+<?php
+/**
+ * @see Mage_Payment_Block_Info
+ * @var Mage_Sales_Model_Order $order
+ */
+$order = Mage::registry('current_order');
+?>
+<?php echo $this->escapeHtml($this->getMethod()->getTitle()) ?>
+
+<?php if ($_specificInfo = $this->getSpecificInformation()):?>
+    <table>
+        <?php foreach ($_specificInfo as $_label => $_value):?>
+            <tr>
+                <td><?php echo $this->escapeHtml($_label)?>:</td>
+                <td><?php echo nl2br(implode($this->getValueAsArray($_value, true), "\n"))?></td>
+            </tr>
+        <?php endforeach; ?>
+    </table>
+<?php endif;?>
+<p>
+    <button class="btn" id="btn-unhold">
+        <?php echo $this->__('Unhold funds') ?>
+    </button>
+</p>
+<p>
+    <label for="charges"><?php echo $this->__('Refunds to charge') ?></label>
+    <input id="charges" type="text" class="input" value="<?php echo $order->getGrandTotal() ?>">
+    <button class="btn" id="charge-refunds">
+        <?php echo $this->__('Charge') ?>
+    </button>
+</p>
+
+<?php echo $this->getChildHtml() ?>
+
+<script>
+    var response = {};
+    response.onSuccess = function(transport) {
+        var response = transport.responseJSON;
+        alert(response.message);
+
+        if (response.status == 'success') {
+            window.location.reload();
+        }
+    };
+
+    response.onFailure = function() {
+        alert('<?php echo $this->__('The order payment operation is failed') ?>');
+    };
+
+    document.getElementById('btn-unhold').addEventListener('click', function() {
+        new Ajax.Request('<?php echo $this->getUrl('adminhtml/romCard_payment/unhold') ?>', {
+            parameters: {
+                order: <?php echo $order->getId() ?>
+            },
+            onSuccess: function(transport) {
+                response.onSuccess(transport);
+            },
+            onFailure: function() {
+                response.onFailure();
+            },
+            onComplete: function() {
+
+            }
+        });
+    });
+
+    document.getElementById('charge-refunds').addEventListener('click', function() {
+        new Ajax.Request('<?php echo $this->getUrl('adminhtml/romCard_payment/charge') ?>', {
+            parameters: {
+                order: <?php echo $order->getId() ?>,
+                charge: document.getElementById('charges').value
+            },
+            onSuccess: function(transport) {
+                response.onSuccess(transport);
+            },
+            onFailure: function() {
+                response.onFailure();
+            },
+            onComplete: function() {
+
+            }
+        });
+    })
+</script>

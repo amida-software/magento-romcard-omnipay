@@ -52,6 +52,6 @@ class Amida_RomCard_Helper_Transaction extends Mage_Core_Helper_Abstract
      */
     public function addPaymentTransaction($order, $transactionId)
     {
-        return $this->addTransaction($order, $transactionId, Mage_Sales_Model_Order_Payment_Transaction::TYPE_PAYMENT);
+        return $this->addTransaction($order, $transactionId, Mage_Sales_Model_Order_Payment_Transaction::TYPE_ORDER);
     }
 }

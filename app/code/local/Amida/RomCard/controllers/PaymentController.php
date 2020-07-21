@@ -13,17 +13,23 @@ class Amida_RomCard_PaymentController extends Mage_Core_Controller_Front_Action
     public function returnAction()
     {
         $this->processRequest(function() {
-            $this->_getaway()->completeSales($this->_getOrder(['protect_code']), $this->getRequest()->getParams());
+            $this->_getaway()->finishAuthorize($this->_getOrder(['protect_code']), $this->getRequest()->getParams(), Mage_Sales_Model_Order_Payment_Transaction::TYPE_AUTH);
             $this->_initQuoteSession();
-        }, 'The order is paid successfully','The order payment is failed');
+        }, 'Payment transaction is created','The order payment is failed');
     }
 
     public function cancelAction()
     {
-        $this->processRequest(function() {
-            $this->_getaway()->reversal($this->_getOrder(['protect_code']), $this->getRequest()->getParams());
+        try {
+            $order = $this->_getOrder(['protect_code']);
+            $this->_getaway()->finishAuthorize($order, $this->getRequest()->getParams(), Mage_Sales_Model_Order_Payment_Transaction::TYPE_REFUND);
+            $this->_getaway()->reversal($order);
             $this->_initQuoteSession();
-        }, 'The order payment is failed','The order payment is failed');
+        } catch (Exception $exception) {
+            Mage::logException($exception);
+        }
+
+        $this->_getSession()->addError($this->__('The order payment is failed'));
     }
 
     protected function processRequest($callback, $successMessage, $errorMessage)

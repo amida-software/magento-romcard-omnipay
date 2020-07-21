@@ -116,7 +116,8 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
     {
         $purchase = $this->getMerchantAuthData();
         $purchase['order_id'] = $order->getId();
-        $purchase['amount'] = $order->getGrandTotal();
+        $purchase['amount'] = $order->getPaymentGrandTotal() ? $order->getPaymentGrandTotal() : $order->getGrandTotal();
+        $purchase['amount'] = number_format($purchase['amount'], 2, '.', '');
         $purchase['currency'] = Mage::app()->getStore()->getCurrentCurrency()->getCurrencyCode();
         $purchase['description'] = $this->getDescription($order);
 
@@ -133,9 +134,10 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
      */
     public function generateSuccessPurchase($order)
     {
+        $additionalData = json_decode($order->getPayment()->getAdditionalData(), true);
         $purchase = $this->generatePurchase($order);
-        $purchase['cardReference'] = Mage::app()->getRequest()->getParam('RRN');
-        $purchase['transactionReference'] = Mage::app()->getRequest()->getParam('INT_REF');
+        $purchase['cardReference'] = $additionalData['RRN'];
+        $purchase['transactionReference'] = $additionalData['INT_REF'];
 
         return $purchase;
     }
@@ -146,9 +148,10 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
      */
     public function generateReversalPurchase($order)
     {
+        $additionalData = json_decode($order->getPayment()->getAdditionalData(), true);
         $purchase = $this->generatePurchase($order);
-        $purchase['cardReference'] = Mage::app()->getRequest()->getParam('RRN');
-        $purchase['transactionReference'] = Mage::app()->getRequest()->getParam('INT_REF');
+        $purchase['cardReference'] = $additionalData['RRN'];
+        $purchase['transactionReference'] = $additionalData['INT_REF'];
 
         return $purchase;
     }

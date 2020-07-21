@@ -54,7 +54,28 @@
                 </Amida_RomCard>
             </modules>
         </translate>
+        <events>
+            <core_block_abstract_to_html_before>
+                <observers>
+                    <romcard>
+                        <model>romcard/observer</model>
+                        <method>setPaymentFormTemplate</method>
+                    </romcard>
+                </observers>
+            </core_block_abstract_to_html_before>
+        </events>
     </adminhtml>
+    <admin>
+        <routers>
+            <adminhtml>
+                <args>
+                    <modules>
+                        <Amida_RomCard after="Mage_Adminhtml">Amida_RomCard_Adminhtml</Amida_RomCard>
+                    </modules>
+                </args>
+            </adminhtml>
+        </routers>
+    </admin>
     <default>
         <payment>
             <romcard>
