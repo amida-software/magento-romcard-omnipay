@@ -17,11 +17,17 @@ class Amida_RomCard_Model_Observer
          * @var Mage_Sales_Model_Order $order
          */
         if ($order = Mage::registry('current_order')) {
-            if (! $order->getPayment()->getAuthorizationTransaction()) {
-                return false;
-            }
+            return $this->_orderHelper()->canProcessPayment($order);
         }
 
         return $block instanceof Mage_Payment_Block_Info;
+    }
+
+    /**
+     * @return Amida_RomCard_Helper_Order
+     */
+    protected function _orderHelper()
+    {
+        return Mage::helper('romcard/order');
     }
 }

@@ -19,6 +19,24 @@ class Amida_RomCard_Helper_Order extends Mage_Core_Helper_Abstract
         return Mage::helper('romcard');
     }
 
+    /**
+     * @param Mage_Sales_Model_Order $order
+     * @param bool $throwIfError
+     * @return bool
+     */
+    public function canProcessPayment($order, $throwIfError = false)
+    {
+        if (! $order->getPayment()->getAuthorizationTransaction()) {
+            if ($throwIfError) {
+                Mage::throwException($this->__('Payment already processed'));
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
     public function getOrder($excludeStrategies = [])
     {
         if ($this->order === null) {
@@ -45,41 +63,6 @@ class Amida_RomCard_Helper_Order extends Mage_Core_Helper_Abstract
         }
 
         return $this->order;
-    }
-
-    protected function isStrategyValid($strategyCode, $strategyCallback, $excludeStrategies = [])
-    {
-        if (! is_callable($strategyCallback)) {
-            return false;
-        }
-
-        if (in_array($strategyCode, $excludeStrategies)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    protected function getStrategies()
-    {
-        if ($this->strategies === null) {
-            $this->strategies = [];
-            $this->strategies['protect_code'] = function() {
-                $code = Mage::app()->getRequest()->getParam('order', null);
-                Mage::app()->getRequest()->setParam('order', null);
-
-                return $code ? [$code, 'protect_code'] : null;
-            };
-            $this->strategies['order_id'] = function() {
-                $id = Mage::app()->getRequest()->getParam('ORDER', null);
-                return $id ? [$id, Mage::getModel('sales/order')->getResource()->getIdFieldName()] : null;
-            };
-            $this->strategies['session'] = function() {
-                return [Mage::getSingleton('checkout/session')->getLastRealOrderId(), 'increment_id'];
-            };
-        }
-
-        return $this->strategies;
     }
 
     /**
@@ -116,5 +99,40 @@ class Amida_RomCard_Helper_Order extends Mage_Core_Helper_Abstract
         }
 
         return $this->__('Order payment failed with: %s', $amount);
+    }
+
+    protected function isStrategyValid($strategyCode, $strategyCallback, $excludeStrategies = [])
+    {
+        if (! is_callable($strategyCallback)) {
+            return false;
+        }
+
+        if (in_array($strategyCode, $excludeStrategies)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function getStrategies()
+    {
+        if ($this->strategies === null) {
+            $this->strategies = [];
+            $this->strategies['protect_code'] = function() {
+                $code = Mage::app()->getRequest()->getParam('order', null);
+                Mage::app()->getRequest()->setParam('order', null);
+
+                return $code ? [$code, 'protect_code'] : null;
+            };
+            $this->strategies['order_id'] = function() {
+                $id = Mage::app()->getRequest()->getParam('ORDER', null);
+                return $id ? [$id, Mage::getModel('sales/order')->getResource()->getIdFieldName()] : null;
+            };
+            $this->strategies['session'] = function() {
+                return [Mage::getSingleton('checkout/session')->getLastRealOrderId(), 'increment_id'];
+            };
+        }
+
+        return $this->strategies;
     }
 }

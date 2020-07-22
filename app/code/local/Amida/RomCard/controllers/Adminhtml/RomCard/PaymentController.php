@@ -6,6 +6,7 @@ class Amida_RomCard_Adminhtml_RomCard_PaymentController extends Mage_Core_Contro
     {
         $order = $this->getOrder();
         $this->process(function() use ($order) {
+            $this->_orderHelper()->canProcessPayment($order, true);
             $grandTotal = $this->getRequest()->getParam('charge');
 
             if (! empty($grandTotal)) {
@@ -25,6 +26,7 @@ class Amida_RomCard_Adminhtml_RomCard_PaymentController extends Mage_Core_Contro
         $order = $this->getOrder();
 
         $this->process(function() use ($order) {
+            $this->_orderHelper()->canProcessPayment($order, true);
             $this->_getaway()->reversal($order, $this->getRequest()->getParams());
         }, 'The transaction is refund successfully');
     }
@@ -46,6 +48,14 @@ class Amida_RomCard_Adminhtml_RomCard_PaymentController extends Mage_Core_Contro
     protected function _getaway()
     {
         return Mage::helper('romcard/getaway');
+    }
+
+    /**
+     * @return Amida_RomCard_Helper_Order
+     */
+    protected function _orderHelper()
+    {
+        return Mage::helper('romcard/order');
     }
 
     protected function process($callback, $successMessage)
