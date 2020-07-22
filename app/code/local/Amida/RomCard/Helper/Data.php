@@ -104,7 +104,7 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
             $template = $filter->filter($template);
         }
 
-        return preg_replace('/[^a-z0-9\s\.\-\_]/ui', '', $template);
+        return preg_replace('/[^a-zа-я0-9\s\.\-\_]/ui', '', $template);
     }
 
     /**
