@@ -30,17 +30,6 @@ class Amida_RomCard_Model_Getaway extends \ByTIC\Omnipay\Romcard\Gateway
         );
     }
 
-    public function completePurchase(array $parameters = []): RequestInterface
-    {
-        /** @var Amida_RomCard_Model_Request_CompletePurchase $request */
-        $request = $this->createRequest(
-            Amida_RomCard_Model_Request_CompletePurchase::class,
-            array_merge($this->getDefaultParameters(), $parameters)
-        );
-        $request->setSaleRequest($this->sale($parameters));
-        return $request;
-    }
-
     public function sale(array $parameters = []): RequestInterface
     {
         $parameters['endpointUrl'] = $this->getEndpointUrl();

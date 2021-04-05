@@ -56,7 +56,7 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
     {
         $order->setState(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT, $this->_data()->getNewStatus())->save();
         $request = $this->_getaway()->purchase($this->_data()->generatePurchase($order));
-        $response = $this->_logger()->decorateRequest($request, 'PreAuthorize');
+        $response = $this->_logger()->decorateRequest($request, 'Authorize');
 
         if (! $response->isRedirect()) {
             throw Mage::exception('Amida_RomCard', $response->getMessage());
@@ -75,12 +75,20 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
     public function finishAuthorize($order, $responseData, $transactionType = null)
     {
         $this->_logger()->logResponse('RedirectBack', $responseData);
-        $this->_logger()->decorateRequest($this->_getaway()->completePurchase($this->_data()->generateSuccessPurchase($order)), 'FinishAuthorization');
 
         if (isset($responseData['INT_REF']) && $transactionType !== null) {
             $this->_transaction()->addTransaction($order, $responseData['INT_REF'], $transactionType);
             $order->getPayment()->setAdditionalData(json_encode($responseData))->save();
+
+            $amount = $responseData['AMOUNT'] ?? $order->getGrandTotal();
+            $order->getPayment()->setBaseAmountAuthorized($amount);
+            $order->getPayment()->setAmountAuthorized($amount);
+            $order->setPaymentAuthorizationAmount($amount);
+            $order->save();
+            return true;
         }
+
+        return  false;
     }
 
     /**
@@ -90,22 +98,42 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
      *
      * @return Omnipay\Common\Message\ResponseInterface
      */
-    public function completeSales($order)
+    public function complete($order)
     {
         $responseData = json_decode($order->getPayment()->getAdditionalData(), true);
 
-        if (! $this->_order()->isPaid($responseData['ACTION'] ?? null)) {
+        if (Amida_RomCard_Helper_Getaway::GETAWAY_ACTION_SUCCESS != $responseData['ACTION'] ?? null) {
             throw Mage::exception('Amida_RomCard', $this->__('The order payment is failed'));
         }
 
-        $request = $this->_getaway()->sale($this->_data()->generateSuccessPurchase($order));
+        $transactionId = $order->getPayment()->getAuthorizationTransaction()->getTxnId();
+        $requestData = $this->_data()->generateSuccessPurchase($order);
+        $reversalAmount = $order->getGrandTotal() - $requestData['amount'];
 
-        if ($response = $this->_logger()->decorateRequest($request, 'CompleteSales')) {
+        if ($reversalAmount > 0) {
+            $this->reversal($order, $reversalAmount);
+        }
+
+        if ($response = $this->_logger()->decorateRequest($this->_getaway()->sale($requestData), 'Complete')) {
             $responseData = $response->getData();
+            $responseData = $responseData['input_values'];
+            list($action, $transactionType) = $this->_data()->parseStatus($responseData);
 
-            if (isset($responseData['INT_REF'])) {
-                $this->_transaction()->addPaymentTransaction($order, $responseData['INT_REF']);
+            if (! $this->_order()->isPaid($action, $transactionType)) {
+                throw Mage::exception('Amida_RomCard', $this->__($responseData['MESSAGE'] ?? 'The order payment is failed'));
             }
+
+            $this->_transaction()->addPaymentTransaction($order, $transactionId);
+
+            $paidAmount = $requestData['amount'];
+            $order->getPayment()->setAmountPaid($paidAmount);
+            $order->getPayment()->setBaseAmountPaid($paidAmount);
+            $order->getPayment()->setBaseAmountPaidOnline($paidAmount);
+            $order->setTotalDue($reversalAmount);
+            $order->setBaseTotalDue($reversalAmount);
+            $order->setTotalPaid($paidAmount);
+            $order->setBaseTotalPaid($paidAmount);
+            $order->save();
 
             $this->_order()->complete($order, $responseData);
         }
@@ -115,24 +143,47 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
 
     /**
      * @param Mage_Sales_Model_Order $order
+     * @param $reversal
      *
      * @throws Exception|Amida_RomCard_Exception
      */
-    public function reversal($order)
+    public function reversal($order, $reversal = null)
     {
-        if ($response = $this->_logger()->decorateRequest($this->_getaway()->refund($this->_data()->generateReversalPurchase($order)), 'Reversal')) {
+        $requestData = $this->_data()->generateReversalPurchase($order);
+
+        if ($reversal !== null) {
+            $requestData['amount'] = $reversal;
+            $requestData['transaction_type'] = Amida_RomCard_Helper_Data::PAYMENT_TRANSACTION_REVERSAL_PARTIAL;
+        }
+
+        $requestData['amount'] = $this->_data()->formatPrice($requestData['amount']);
+
+        if ($response = $this->_logger()->decorateRequest($this->_getaway()->refund($requestData), 'Reversal')) {
             $responseData = $response->getData();
-            $transactionId = $responseData['INT_REF'] ?? null;
+            $responseData = $responseData['input_values'];
+            list($action, $transactionType) = $this->_data()->parseStatus($responseData);
 
-            if (! $transactionId) {
-                $transactionId = $order->getPayment()->getAuthorizationTransaction()->getTxnId();
+            if (! $this->_order()->isReversal($action, $transactionType)) {
+                throw Mage::exception('Amida_RomCard', $this->__($responseData['MESSAGE'] ?? 'The order payment is failed'));
             }
 
-            if ($transactionId) {
-                $this->_transaction()->addRefundTransaction($order, $transactionId);
-            }
+            $this->_transaction()->addRefundTransaction($order, $order->getPayment()->getAuthorizationTransaction()->getTxnId());
+
+            $reversalAmount = $requestData['amount'];
+            $order->getPayment()->setAmountRefunded($reversalAmount);
+            $order->getPayment()->setBaseAmountRefunded($reversalAmount);
+            $order->getPayment()->setBaseAmountRefundedOnline($reversalAmount);
+
+            $order->setTotalDue($reversalAmount);
+            $order->setBaseTotalDue($reversalAmount);
+            $order->setTotalRefunded($reversalAmount);
+            $order->setBaseTotalRefunded($reversalAmount);
+            $order->setBaseTotalOnlineRefunded($reversalAmount);
+            $order->setBaseSubtotalRefunded($reversalAmount);
+            $order->save();
 
             $this->_order()->complete($order, $responseData);
+
             return;
         }
 

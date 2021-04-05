@@ -2,7 +2,7 @@
 <config>
     <modules>
         <Amida_RomCard>
-            <version>1.0.0</version>
+            <version>1.0.0.2</version>
         </Amida_RomCard>
     </modules>
     <global>
@@ -90,7 +90,15 @@
                 <order_status_new><![CDATA[pending_payment]]></order_status_new>
                 <order_status_success><![CDATA[paid]]></order_status_success>
                 <order_status_failed><![CDATA[payment_failed]]></order_status_failed>
+                <order_status_reversal><![CDATA[payment_reversal]]></order_status_reversal>
+                <order_status_hold><![CDATA[payment_refunds_on_hold]]></order_status_hold>
                 <is_dev>0</is_dev>
+
+                <merchant_id>0000000Q0000104</merchant_id>
+                <merchant_name><![CDATA[Ovico-Parfum S.R.L.]]></merchant_name>
+                <merchant_url><![CDATA[www.ovico.md]]></merchant_url>
+                <terminal_id>Q0000104</terminal_id>
+                <salt_key><![CDATA[AA9E3BD52BAA0963703E3CD75BAC67A1]]></salt_key>
             </romcard>
         </payment>
     </default>

@@ -7,27 +7,32 @@ class Amida_RomCard_Adminhtml_RomCard_PaymentController extends Mage_Core_Contro
         $order = $this->getOrder();
         $this->process(function() use ($order) {
             $this->_orderHelper()->canProcessPayment($order, true);
-            $grandTotal = $this->getRequest()->getParam('charge');
 
-            if (! empty($grandTotal)) {
+            if ($this->getRequest()->has('charge')) {
+                $grandTotal = (float)$this->getRequest()->getParam('charge');
+
                 if ($order->getGrandTotal() < $grandTotal) {
-                    throw Mage::exception('Amida_RomCard', $this->__('Selected grand total cannot be more then %s', $order->getGrandTotal()));
+                    throw Mage::exception('Amida_RomCard', $this->__('Selected grand total cannot be more then %s', $this->_helper()->formatPrice($order->getGrandTotal())));
                 }
 
-                $order->setPaymentGrandTotal($grandTotal);
+                if (0.01 > $grandTotal) {
+                    throw Mage::exception('Amida_RomCard', $this->__('Selected grand total cannot be less then %s', 0.01));
+                }
+            } else {
+                $grandTotal = $order->getGrandTotal();
             }
 
-            $this->_getaway()->completeSales($order);
+            $order->setPaymentGrandTotal($grandTotal);
+            $this->_getaway()->complete($order);
         }, 'The order is paid successfully');
     }
 
     public function unholdAction()
     {
         $order = $this->getOrder();
-
         $this->process(function() use ($order) {
             $this->_orderHelper()->canProcessPayment($order, true);
-            $this->_getaway()->reversal($order, $this->getRequest()->getParams());
+            $this->_getaway()->reversal($order);
         }, 'The transaction is refund successfully');
     }
 
@@ -56,6 +61,14 @@ class Amida_RomCard_Adminhtml_RomCard_PaymentController extends Mage_Core_Contro
     protected function _orderHelper()
     {
         return Mage::helper('romcard/order');
+    }
+
+    /**
+     * @return Amida_RomCard_Helper_Data
+     */
+    protected function _helper()
+    {
+        return Mage::helper('romcard');
     }
 
     protected function process($callback, $successMessage)

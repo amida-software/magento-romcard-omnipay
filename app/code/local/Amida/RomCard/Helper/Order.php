@@ -68,34 +68,52 @@ class Amida_RomCard_Helper_Order extends Mage_Core_Helper_Abstract
     /**
      * @param Mage_Sales_Model_Order $order
      * @param array $responseData
+     * @param $state
      */
-    public function complete($order, $responseData)
+    public function complete($order, $responseData, $state = Mage_Sales_Model_Order::STATE_PAYMENT_REVIEW)
     {
-        $action = $responseData['ACTION'] ?? null;
-        $status = $this->getOrderStatusByResponse($action);
-        $comment = $this->getOrderCommentByResponse($action, $responseData['AMOUNT'] ?? $this->__('Cannot get payment amount'));
-        $order->setState(Mage_Sales_Model_Order::STATE_PAYMENT_REVIEW, $status, $comment)->save();
+        list($action, $transactionType) = $this->_data()->parseStatus($responseData);
+        $amount = $responseData['AMOUNT'] ?? $responseData['f'] ?? $this->__('Cannot get payment amount');
+        $status = $this->getOrderStatusByResponse($action, $transactionType);
+        $comment = $this->getOrderCommentByResponse($action, $transactionType, $amount);
+        $order->setState($state, $status, $comment)->save();
     }
 
-    public function isPaid($status)
+    public function isPaid($status, $transactionType)
     {
-        return $status == Amida_RomCard_Helper_Getaway::GETAWAY_ACTION_SUCCESS;
+        return $status == Amida_RomCard_Helper_Getaway::GETAWAY_ACTION_SUCCESS && $transactionType == Amida_RomCard_Helper_Data::PAYMENT_TRANSACTION_COMPLETE_SALES;
     }
 
-    public function getOrderStatusByResponse($responseMessage)
+    public function isReversal($status, $transactionType)
     {
-        if ($this->isPaid($responseMessage)) {
+        return $status == Amida_RomCard_Helper_Getaway::GETAWAY_ACTION_SUCCESS
+            && in_array($transactionType, [
+                Amida_RomCard_Helper_Data::PAYMENT_TRANSACTION_REVERSAL,
+                Amida_RomCard_Helper_Data::PAYMENT_TRANSACTION_REVERSAL_PARTIAL
+            ]);
+    }
+
+    public function getOrderStatusByResponse($responseMessage, $transactionType)
+    {
+        if ($this->isPaid($responseMessage, $transactionType)) {
             return $this->_data()->getSuccessStatus();
+        }
+
+        if ($this->isReversal($responseMessage, $transactionType)) {
+            return $this->_data()->getReversalStatus();
         }
 
         return $this->_data()->getFailedStatus();
     }
 
-    public function getOrderCommentByResponse($responseMessage, $amount)
+    public function getOrderCommentByResponse($responseMessage, $transactionType, $amount)
     {
-        if ($this->isPaid($responseMessage)) {
+        if ($this->isPaid($responseMessage, $transactionType)) {
             return $this->__('Order paid with: %s', $amount);
+        }
 
+        if ($this->isReversal($responseMessage, $transactionType)) {
+            return $this->__('Order payment refunds returned: %s', $amount);
         }
 
         return $this->__('Order payment failed with: %s', $amount);

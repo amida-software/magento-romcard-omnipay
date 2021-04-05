@@ -36,6 +36,15 @@
                             <show_in_store>0</show_in_store>
                             <sort_order>30</sort_order>
                         </order_status_new>
+                        <order_status_hold translate="label">
+                            <label>Order status after refunds holded</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>romcard/system_config_source_order_status</source_model>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                            <sort_order>35</sort_order>
+                        </order_status_hold>
                         <order_status_success translate="label">
                             <label>Order payment is success status</label>
                             <frontend_type>select</frontend_type>
@@ -54,6 +63,15 @@
                             <show_in_store>0</show_in_store>
                             <sort_order>50</sort_order>
                         </order_status_failed>
+                        <order_status_reversal translate="label">
+                            <label>Order payment reversal status</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>romcard/system_config_source_order_status</source_model>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                            <sort_order>55</sort_order>
+                        </order_status_reversal>
                         <allowspecific translate="label">
                             <label>Payment from applicable countries</label>
                             <frontend_type>allowspecific</frontend_type>

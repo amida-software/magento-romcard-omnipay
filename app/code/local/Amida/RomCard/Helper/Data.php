@@ -4,10 +4,13 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
 {
     const PAYMENT_STATUS_PAID = 'paid';
     const PAYMENT_STATUS_FAIL = 'payment_failed';
+    const PAYMENT_STATUS_REVERSAL = 'payment_reversal';
+    const PAYMENT_STATUS_REFUNDS_ON_HOLD = 'payment_refunds_on_hold';
 
     const PAYMENT_TRANSACTION_AUTHORIZE = 0;
     const PAYMENT_TRANSACTION_COMPLETE_SALES = 21;
     const PAYMENT_TRANSACTION_REVERSAL = 24;
+    const PAYMENT_TRANSACTION_REVERSAL_PARTIAL = 25;
 
     protected $paymentMethodModel = null;
 
@@ -73,6 +76,11 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
         return $this->getConfig('order_status_new');
     }
 
+    public function getPaymentHoldStatus()
+    {
+        return $this->getConfig('order_status_hold');
+    }
+
     public function getSuccessStatus()
     {
         return $this->getConfig('order_status_success');
@@ -81,6 +89,11 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
     public function getFailedStatus()
     {
         return $this->getConfig('order_status_failed');
+    }
+
+    public function getReversalStatus()
+    {
+        return $this->getConfig('order_status_reversal');
     }
 
     /**
@@ -104,7 +117,10 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
             $template = $filter->filter($template);
         }
 
-        return preg_replace('/[^a-zа-я0-9\s\.\-\_]/ui', '', $template);
+        $description = preg_replace('/[^a-zа-я0-9\s\.\-\_]/ui', '', $template);
+        $description = mb_substr($description, 0, 50);
+
+        return $description;
     }
 
     /**
@@ -117,8 +133,8 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
         $purchase = $this->getMerchantAuthData();
         $purchase['order_id'] = $order->getId();
         $purchase['amount'] = $order->getPaymentGrandTotal() ? $order->getPaymentGrandTotal() : $order->getGrandTotal();
-        $purchase['amount'] = number_format($purchase['amount'], 2, '.', '');
-        $purchase['currency'] = Mage::app()->getStore()->getCurrentCurrency()->getCurrencyCode();
+        $purchase['amount'] = $this->formatPrice($purchase['amount']);
+        $purchase['currency'] = 'MDL'; // Mage::app()->getStore()->getCurrentCurrency()->getCurrencyCode();
         $purchase['description'] = $this->getDescription($order);
 
         foreach ($unsetFields as $fieldName) {
@@ -152,6 +168,7 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
         $purchase = $this->generatePurchase($order);
         $purchase['cardReference'] = $additionalData['RRN'];
         $purchase['transactionReference'] = $additionalData['INT_REF'];
+        $purchase['transaction_type'] = Amida_RomCard_Helper_Data::PAYMENT_TRANSACTION_REVERSAL;
 
         return $purchase;
     }
@@ -168,5 +185,18 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
         $auth['key'] = $this->getSaltKey();
 
         return $auth;
+    }
+
+    public function formatPrice($price, $includeContainer = true)
+    {
+        return number_format($price, 2, '.', '');
+    }
+
+    public function parseStatus($responseData)
+    {
+        $action = $responseData['ACTION'] ?? $responseData['b'] ?? Amida_RomCard_Helper_Getaway::GETAWAY_ACTION_FAULT;
+        $transactionType = $responseData['TRTYPE'] ?? $responseData['e'] ?? null;
+
+        return [$action, $transactionType];
     }
 }

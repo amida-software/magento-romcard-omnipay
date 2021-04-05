@@ -16,8 +16,8 @@ class Amida_RomCard_Model_Observer
         /**
          * @var Mage_Sales_Model_Order $order
          */
-        if ($order = Mage::registry('current_order')) {
-            return $this->_orderHelper()->canProcessPayment($order);
+        if ($order = Mage::registry('current_order') and ! $this->_orderHelper()->canProcessPayment($order)) {
+            return false;
         }
 
         return $block instanceof Mage_Payment_Block_Info;

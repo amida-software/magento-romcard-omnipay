@@ -13,7 +13,17 @@ class Amida_RomCard_PaymentController extends Mage_Core_Controller_Front_Action
     public function returnAction()
     {
         $this->processRequest(function() {
-            $this->_getaway()->finishAuthorize($this->_getOrder(['protect_code']), $this->getRequest()->getParams(), Mage_Sales_Model_Order_Payment_Transaction::TYPE_AUTH);
+            $order = $this->_getOrder(['protect_code']);
+            $params = $this->getRequest()->getParams();
+            $result = $this->_getaway()->finishAuthorize($order, $params, Mage_Sales_Model_Order_Payment_Transaction::TYPE_AUTH);
+
+            if ($result) {
+                $order->setState(Mage_Sales_Model_Order::STATE_PENDING_PAYMENT, $this->_data()->getPaymentHoldStatus())->save();
+            } else {
+                $msg[] = sprintf('Шлюз оплаты сообщил: %s', $params['MESSAGE'] ?: $this->__('Error when payment process'));
+                $msg[] = sprintf('Код ошибки (Action Code): %s', $params['ACTION'] ?: 'none');
+                $order->addStatusHistoryComment(implode(PHP_EOL, $msg));
+            }
             $this->_initQuoteSession();
         }, 'Payment transaction is created','The order payment is failed');
     }
@@ -46,6 +56,14 @@ class Amida_RomCard_PaymentController extends Mage_Core_Controller_Front_Action
             $this->_redirectError(Mage::getUrl('checkout/onepage/success'));
             Mage::logException($exception);
         }
+    }
+
+    /**
+     * @return Amida_RomCard_Helper_Data
+     */
+    protected function _data()
+    {
+        return Mage::helper('romcard');
     }
 
     /**
