@@ -10,7 +10,7 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
     const PAYMENT_TRANSACTION_AUTHORIZE = 0;
     const PAYMENT_TRANSACTION_COMPLETE_SALES = 21;
     const PAYMENT_TRANSACTION_REVERSAL = 24;
-    const PAYMENT_TRANSACTION_REVERSAL_PARTIAL = 25;
+    const PAYMENT_TRANSACTION_REVERSAL_PARTIAL = 14;
 
     protected $paymentMethodModel = null;
 

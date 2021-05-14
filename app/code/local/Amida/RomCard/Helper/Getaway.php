@@ -106,13 +106,10 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
             throw Mage::exception('Amida_RomCard', $this->__('The order payment is failed'));
         }
 
-        $transactionId = $order->getPayment()->getAuthorizationTransaction()->getTxnId();
         $requestData = $this->_data()->generateSuccessPurchase($order);
-        $reversalAmount = $order->getGrandTotal() - $requestData['amount'];
-
-        if ($reversalAmount > 0) {
-            $this->reversal($order, $reversalAmount);
-        }
+        $partialRefund = $requestData['amount'];
+        $reversalAmount = $order->getGrandTotal() - $partialRefund;
+        $requestData['amount'] = $order->getGrandTotal();
 
         if ($response = $this->_logger()->decorateRequest($this->_getaway()->sale($requestData), 'Complete')) {
             $responseData = $response->getData();
@@ -123,7 +120,7 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
                 throw Mage::exception('Amida_RomCard', $this->__($responseData['MESSAGE'] ?? 'The order payment is failed'));
             }
 
-            $this->_transaction()->addPaymentTransaction($order, $transactionId);
+            $this->_transaction()->addPaymentTransaction($order, $responseData['j']);
 
             $paidAmount = $requestData['amount'];
             $order->getPayment()->setAmountPaid($paidAmount);
@@ -134,6 +131,10 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
             $order->setTotalPaid($paidAmount);
             $order->setBaseTotalPaid($paidAmount);
             $order->save();
+
+            if ($reversalAmount > 0) {
+                $this->reversal($order, $partialRefund);
+            }
 
             $this->_order()->complete($order, $responseData);
         }
@@ -167,7 +168,7 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
                 throw Mage::exception('Amida_RomCard', $this->__($responseData['MESSAGE'] ?? 'The order payment is failed'));
             }
 
-            $this->_transaction()->addRefundTransaction($order, $order->getPayment()->getAuthorizationTransaction()->getTxnId());
+            $this->_transaction()->addRefundTransaction($order, $responseData['j'] . '_refund');
 
             $reversalAmount = $requestData['amount'];
             $order->getPayment()->setAmountRefunded($reversalAmount);

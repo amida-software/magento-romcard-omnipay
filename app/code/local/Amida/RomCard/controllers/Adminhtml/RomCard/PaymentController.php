@@ -80,6 +80,7 @@ class Amida_RomCard_Adminhtml_RomCard_PaymentController extends Mage_Core_Contro
             $response['status'] = 'success';
             $response['message'] = $this->__($successMessage);
         } catch (Mage_Core_Exception $exception) {
+            Mage::logException($exception);
             $response['message'] = $exception->getMessage();
         } catch (Exception $exception) {
             Mage::logException($exception);

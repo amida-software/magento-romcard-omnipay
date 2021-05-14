@@ -9,13 +9,17 @@ class Amida_RomCard_Helper_Transaction extends Mage_Core_Helper_Abstract
      *
      * @return Mage_Sales_Model_Order_Payment_Transaction|null
      */
-    public function addTransaction($order, $transactionId, $transactionType)
+    public function addTransaction($order, $transactionId, $transactionType, $parentTxnId = null)
     {
         if (empty($transactionId)) {
             return null;
         }
 
         if ($transaction = $order->getPayment()->setTransactionId($transactionId)->addTransaction($transactionType)) {
+            if ($parentTxnId !== null) {
+                $transaction->setParentTxnId($parentTxnId);
+            }
+
             $transaction->save();
         }
 
@@ -41,7 +45,12 @@ class Amida_RomCard_Helper_Transaction extends Mage_Core_Helper_Abstract
      */
     public function addRefundTransaction($order, $transactionId)
     {
-        return $this->addTransaction($order, $transactionId, Mage_Sales_Model_Order_Payment_Transaction::TYPE_REFUND);
+        return $this->addTransaction(
+            $order,
+            $transactionId,
+            Mage_Sales_Model_Order_Payment_Transaction::TYPE_REFUND,
+            $order->getPayment()->getAuthorizationTransaction()->getId()
+        );
     }
 
     /**
@@ -52,6 +61,11 @@ class Amida_RomCard_Helper_Transaction extends Mage_Core_Helper_Abstract
      */
     public function addPaymentTransaction($order, $transactionId)
     {
-        return $this->addTransaction($order, $transactionId, Mage_Sales_Model_Order_Payment_Transaction::TYPE_ORDER);
+        return $this->addTransaction(
+            $order,
+            $transactionId,
+            Mage_Sales_Model_Order_Payment_Transaction::TYPE_ORDER,
+            $order->getPayment()->getAuthorizationTransaction()->getId()
+        );
     }
 }
