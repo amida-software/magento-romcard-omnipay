@@ -30,6 +30,7 @@
  * @var Mage_Sales_Model_Order $order
  */
 $order = Mage::registry('current_order');
+$showOrderCharge = $order && $order->getTotalDue() == $order->getGrandTotal();
 ?>
 <?php echo $this->escapeHtml($this->getMethod()->getTitle()) ?>
 
@@ -43,68 +44,74 @@ $order = Mage::registry('current_order');
         <?php endforeach; ?>
     </table>
 <?php endif;?>
-<p>
-    <button class="btn" id="btn-unhold">
-        <?php echo $this->__('Unhold funds') ?>
-    </button>
-</p>
-<p>
-    <label for="charges"><?php echo $this->__('Refunds to charge') ?></label>
-    <input id="charges" type="text" class="input" value="<?php echo $order->getGrandTotal() ?>">
-    <button class="btn" id="charge-refunds">
-        <?php echo $this->__('Charge') ?>
-    </button>
-</p>
+<?php if ($showOrderCharge): ?>
+    <p>
+        <button class="btn" id="btn-unhold">
+            <?php echo $this->__('Unhold funds') ?>
+        </button>
+    </p>
+    <p>
+        <label for="charges"><?php echo $this->__('Refunds to charge') ?></label>
+        <input id="charges" type="text" class="input" value="<?php echo $order->getGrandTotal() ?>">
+        <button class="btn" id="charge-refunds">
+            <?php echo $this->__('Charge') ?>
+        </button>
+    </p>
+<?php else: ?>
+    <p><?php echo $this->__('Paid'), ': ', Mage::helper('core')->currency($order->getTotalPaid(), true, false) ?></p>
+<?php endif; ?>
 
 <?php echo $this->getChildHtml() ?>
 
-<script>
-    var response = {};
-    response.onSuccess = function(transport) {
-        var response = transport.responseJSON;
-        alert(response.message);
+<?php if ($showOrderCharge): ?>
+    <script>
+        var response = {};
+        response.onSuccess = function(transport) {
+            var response = transport.responseJSON;
+            alert(response.message);
 
-        if (response.status == 'success') {
-            window.location.reload();
-        }
-    };
-
-    response.onFailure = function() {
-        alert('<?php echo $this->__('The order payment operation is failed') ?>');
-    };
-
-    document.getElementById('btn-unhold').addEventListener('click', function() {
-        new Ajax.Request('<?php echo $this->getUrl('adminhtml/romCard_payment/unhold') ?>', {
-            parameters: {
-                order: <?php echo $order->getId() ?>
-            },
-            onSuccess: function(transport) {
-                response.onSuccess(transport);
-            },
-            onFailure: function() {
-                response.onFailure();
-            },
-            onComplete: function() {
-
+            if (response.status == 'success') {
+                window.location.reload();
             }
-        });
-    });
+        };
 
-    document.getElementById('charge-refunds').addEventListener('click', function() {
-        new Ajax.Request('<?php echo $this->getUrl('adminhtml/romCard_payment/charge') ?>', {
-            parameters: {
-                order: <?php echo $order->getId() ?>,
-                charge: document.getElementById('charges').value
-            },
-            onSuccess: function(transport) {
-                response.onSuccess(transport);
-            },
-            onFailure: function() {
-                response.onFailure();
-            },
-            onComplete: function() {
+        response.onFailure = function() {
+            alert('<?php echo $this->__('The order payment operation is failed') ?>');
+        };
 
-            }
+        document.getElementById('btn-unhold').addEventListener('click', function() {
+            new Ajax.Request('<?php echo $this->getUrl('adminhtml/romCard_payment/unhold') ?>', {
+                parameters: {
+                    order: <?php echo $order->getId() ?>
+                },
+                onSuccess: function(transport) {
+                    response.onSuccess(transport);
+                },
+                onFailure: function() {
+                    response.onFailure();
+                },
+                onComplete: function() {
+
+                }
+            });
         });
-    })
-</script>
+
+        document.getElementById('charge-refunds').addEventListener('click', function() {
+            new Ajax.Request('<?php echo $this->getUrl('adminhtml/romCard_payment/charge') ?>', {
+                parameters: {
+                    order: <?php echo $order->getId() ?>,
+                    charge: document.getElementById('charges').value
+                },
+                onSuccess: function(transport) {
+                    response.onSuccess(transport);
+                },
+                onFailure: function() {
+                    response.onFailure();
+                },
+                onComplete: function() {
+
+                }
+            });
+        })
+    </script>
+<?php endif; ?>
