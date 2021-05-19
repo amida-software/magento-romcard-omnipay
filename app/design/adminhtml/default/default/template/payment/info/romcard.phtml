@@ -44,6 +44,7 @@ $showOrderCharge = $order && $order->getTotalDue() == $order->getGrandTotal();
         <?php endforeach; ?>
     </table>
 <?php endif;?>
+
 <?php if ($showOrderCharge): ?>
     <p>
         <button class="btn" id="btn-unhold">
@@ -58,7 +59,14 @@ $showOrderCharge = $order && $order->getTotalDue() == $order->getGrandTotal();
         </button>
     </p>
 <?php else: ?>
-    <p><?php echo $this->__('Paid'), ': ', Mage::helper('core')->currency($order->getTotalPaid(), true, false) ?></p>
+    <?php
+    if (! $order and $shipment = Mage::registry('current_shipment')) {
+        $order = $shipment->getOrder();
+    }
+    ?>
+    <?php if ($order && $order->getTotalPaid()): ?>
+        <p><?php echo $this->__('Paid'), ': ', Mage::helper('core')->currency($order->getTotalPaid(), true, false) ?></p>
+    <?php endif; ?>
 <?php endif; ?>
 
 <?php echo $this->getChildHtml() ?>
