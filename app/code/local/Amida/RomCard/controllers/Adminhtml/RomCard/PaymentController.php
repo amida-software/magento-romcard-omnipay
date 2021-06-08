@@ -18,12 +18,14 @@ class Amida_RomCard_Adminhtml_RomCard_PaymentController extends Mage_Core_Contro
                 if (0.01 > $grandTotal) {
                     throw Mage::exception('Amida_RomCard', $this->__('Selected grand total cannot be less then %s', 0.01));
                 }
+                $partialRefundFlag = true;
             } else {
                 $grandTotal = $order->getGrandTotal();
+                $partialRefundFlag = false;
             }
 
             $order->setPaymentGrandTotal($grandTotal);
-            $this->_getaway()->complete($order);
+            $this->_getaway()->complete($order, $partialRefundFlag);
         }, 'The order is paid successfully');
     }
 

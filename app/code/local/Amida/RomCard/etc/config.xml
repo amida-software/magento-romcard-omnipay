@@ -85,7 +85,7 @@
                 <title>RomCard</title>
                 <allowspecific>0</allowspecific>
                 <payment_action>sale</payment_action>
-                <description><![CDATA[Оплата товара(ов): {{var products}}]]></description>
+                <description><![CDATA[Оплата товаров]]></description>
                 <log_enabled>1</log_enabled>
                 <order_status_new><![CDATA[pending_payment]]></order_status_new>
                 <order_status_success><![CDATA[paid]]></order_status_success>

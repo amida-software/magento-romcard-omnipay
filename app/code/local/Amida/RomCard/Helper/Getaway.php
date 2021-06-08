@@ -98,7 +98,7 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
      *
      * @return Omnipay\Common\Message\ResponseInterface
      */
-    public function complete($order)
+    public function complete($order, $partialRefundFlag = false)
     {
         $responseData = json_decode($order->getPayment()->getAdditionalData(), true);
 
@@ -107,9 +107,10 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
         }
 
         $requestData = $this->_data()->generateSuccessPurchase($order);
-        $partialRefund = $requestData['amount'];
-        $reversalAmount = $order->getGrandTotal() - $partialRefund;
-        $requestData['amount'] = $order->getGrandTotal();
+
+        $paidAmount = $requestData['amount'];
+        $due = $reversalAmount = $order->getGrandTotal() - $paidAmount;
+        $requestData['amount'] = $reversalAmount;
 
         if ($response = $this->_logger()->decorateRequest($this->_getaway()->sale($requestData), 'Complete')) {
             $responseData = $response->getData();
@@ -122,18 +123,21 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
 
             $this->_transaction()->addPaymentTransaction($order, $responseData['j']);
 
-            $paidAmount = $requestData['amount'];
             $order->getPayment()->setAmountPaid($paidAmount);
             $order->getPayment()->setBaseAmountPaid($paidAmount);
             $order->getPayment()->setBaseAmountPaidOnline($paidAmount);
-            $order->setTotalDue($reversalAmount);
-            $order->setBaseTotalDue($reversalAmount);
             $order->setTotalPaid($paidAmount);
             $order->setBaseTotalPaid($paidAmount);
+            $order->setTotalDue($due);
+            $order->setBaseTotalDue($due);
             $order->save();
 
-            if ($reversalAmount > 0) {
-                $this->reversal($order, $partialRefund);
+            if ($partialRefundFlag) {
+                $this->reversal($order, $reversalAmount);
+                $order->setTotalRefunded($reversalAmount);
+                $order->setBaseTotalRefunded($reversalAmount);
+                $order->setTotalOnlineRefunded($reversalAmount);
+                $order->save();
             }
 
             $this->_order()->complete($order, $responseData);

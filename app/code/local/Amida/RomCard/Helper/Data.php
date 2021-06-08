@@ -118,7 +118,9 @@ class Amida_RomCard_Helper_Data extends Mage_Core_Helper_Data
         }
 
         $description = preg_replace('/[^a-zа-я0-9\s\.\-\_]/ui', '', $template);
+        $description = str_replace('  ', ' ', $description);
         $description = mb_substr($description, 0, 50);
+        $description = trim($description);
 
         return $description;
     }
