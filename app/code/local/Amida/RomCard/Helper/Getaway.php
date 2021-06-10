@@ -108,9 +108,10 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
 
         $requestData = $this->_data()->generateSuccessPurchase($order);
 
+
         $paidAmount = $requestData['amount'];
         $due = $reversalAmount = $order->getGrandTotal() - $paidAmount;
-        $requestData['amount'] = $reversalAmount;
+        $requestData['amount'] = $order->getGrandTotal();
 
         if ($response = $this->_logger()->decorateRequest($this->_getaway()->sale($requestData), 'Complete')) {
             $responseData = $response->getData();
@@ -159,6 +160,10 @@ class Amida_RomCard_Helper_Getaway extends Mage_Core_Helper_Abstract
         if ($reversal !== null) {
             $requestData['amount'] = $reversal;
             $requestData['transaction_type'] = Amida_RomCard_Helper_Data::PAYMENT_TRANSACTION_REVERSAL_PARTIAL;
+        }
+
+        if (! $requestData['amount']) {
+            return;
         }
 
         $requestData['amount'] = $this->_data()->formatPrice($requestData['amount']);
