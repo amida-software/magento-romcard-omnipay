@@ -20,6 +20,10 @@ class Amida_RomCard_Model_Observer
             return false;
         }
 
+        if ($order->getPayment()->getMethod() != 'romcard') {
+            return false;
+        }
+
         return $block instanceof Mage_Payment_Block_Info;
     }
 
