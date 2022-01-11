@@ -20,7 +20,7 @@ class Amida_RomCard_Model_Observer
             return false;
         }
 
-        if ($order->getPayment()->getMethod() != 'romcard') {
+        if ($order && $order->getPayment()->getMethod() != 'romcard') {
             return false;
         }
 
